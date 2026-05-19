@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Học Tập & Kỷ Luật V3</title>
+    <title>Học Tập & Kỷ Luật </title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Thêm thư viện xuất PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
-    <!-- Thêm font chữ cho bằng khen -->
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     
@@ -51,10 +49,13 @@
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
             transition: all 0.2s ease;
         }
-        .premium-card:active { transform: translateY(2px); border-bottom-width: 2px; margin-top: 2px; }
         
-        .card-locked { opacity: 0.7; pointer-events: none; filter: grayscale(20%); border-bottom-color: #cbd5e1; }
-        .card-done { border-color: #22c55e; border-bottom-color: #16a34a; background: #f0fdf4; }
+        /* Trạng thái thẻ nhiệm vụ mới */
+        .card-clickable { cursor: pointer; }
+        .card-clickable:active { transform: translateY(2px); border-bottom-width: 2px; margin-top: 2px; }
+        .card-locked { opacity: 0.6; pointer-events: none; filter: grayscale(50%); border-bottom-color: #cbd5e1; }
+        .card-done { border-color: #22c55e; border-bottom-color: #16a34a; background: #f0fdf4; pointer-events: none;}
+        .card-running { border-color: #f59e0b; border-bottom-color: #d97706; background: #fffbeb; box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); pointer-events: auto; }
 
         @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
         .shake-error { animation: shake 0.4s ease-in-out; border-color: #ef4444 !important; background-color: #fef2f2 !important; }
@@ -79,8 +80,8 @@
 
         /* --- BẰNG KHEN STYLES --- */
         .certificate-container {
-            width: 1123px; /* 297mm ở 96dpi */
-            height: 794px; /* 210mm ở 96dpi */
+            width: 1123px;
+            height: 794px;
             background-color: white;
             padding: 40px;
             position: relative;
@@ -112,7 +113,6 @@
 </head>
 <body>
 
-    <!-- DATALIST GỢI Ý TRƯỜNG -->
     <datalist id="highschools-list">
         <option value="THPT Chuyên Lê Hồng Phong">
         <option value="THPT Chuyên Trần Đại Nghĩa">
@@ -131,7 +131,6 @@
         <option value="Đại học Sư phạm Kỹ thuật TP.HCM (HCMUTE)">
     </datalist>
 
-    <!-- LEVEL UP TOAST -->
     <div id="level-toast" class="level-up-toast pointer-events-none opacity-0 -translate-y-10 fixed top-6 left-1/2 -translate-x-1/2 z-[999] bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white px-8 py-4 rounded-[2rem] shadow-[0_15px_40px_rgba(245,158,11,0.4)] flex items-center gap-4 font-black border-2 border-white/40 backdrop-blur-md transition-all duration-500 transform">
         <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-3xl animate-bounce">
             👑
@@ -142,7 +141,45 @@
         </div>
     </div>
 
-    <!-- STREAK CELEBRATION MODAL -->
+    <!-- Modal Popup Nhiệm vụ -->
+    <div id="task-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300" id="task-modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 bg-indigo-50 text-brand rounded-2xl flex items-center justify-center text-2xl mb-2">
+                        <i class="ph-fill ph-book-open-text"></i>
+                    </div>
+                    <button onclick="closeTaskModal()" class="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-slate-200 active:scale-90 transition-all">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+                
+                <h3 class="text-2xl font-black text-slate-800 mb-1" id="tm-subject">Tên môn</h3>
+                <p class="text-slate-500 font-bold text-sm mb-6 flex items-center gap-2">
+                    <i class="ph-fill ph-target text-brand"></i> <span id="tm-goal">Mục tiêu</span>
+                </p>
+                
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <i class="ph-fill ph-hourglass-high text-2xl text-amber-500"></i>
+                        <div>
+                            <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Thời gian dự kiến</p>
+                            <p class="font-black text-slate-800 text-lg"><span id="tm-duration">0</span> phút</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Phần thưởng</p>
+                        <p class="font-black text-brand text-lg">+50 EXP</p>
+                    </div>
+                </div>
+
+                <button id="tm-start-btn" class="w-full bg-brand hover:bg-indigo-700 text-white font-black py-4 rounded-2xl active:scale-95 transition-all shadow-[0_8px_20px_rgba(79,70,229,0.3)] flex items-center justify-center gap-2 text-lg">
+                    <i class="ph-fill ph-play-circle text-2xl"></i> Bắt đầu chạy
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="streak-modal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[150] hidden flex-col items-center justify-center p-6 text-white text-center">
         <div class="relative w-full max-w-sm flex flex-col items-center">
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -181,7 +218,6 @@
         </div>
     </div>
 
-    <!-- PLATFORM SHARE STREAK CARD MODAL -->
     <div id="share-streak-modal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[200] hidden overflow-y-auto">
         <div class="min-h-screen w-full p-4 flex flex-col items-center justify-center">
             
@@ -221,7 +257,6 @@
                 </div>
             </div>
 
-            <!-- GIAO DIỆN NÚT ĐÃ ĐƯỢC THÊM LẠI BẰNG KHEN -->
             <div class="flex flex-col gap-3 w-[320px] shrink-0 mt-2">
                 <button id="btn-download-card" onclick="downloadStreakCard()" class="w-full bg-white text-orange-600 hover:bg-orange-50 font-black py-3.5 px-6 rounded-2xl active:scale-95 transition-all shadow-[0_8px_25px_rgba(249,115,22,0.4)] flex items-center justify-center gap-2">
                     <i class="ph-bold ph-image text-xl"></i> Tải Ảnh Vuông
@@ -236,10 +271,8 @@
         </div>
     </div>
 
-    <!-- ONBOARDING MODAL -->
     <div id="onboarding-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] hidden items-center justify-center p-4 transition-opacity duration-300">
         <div class="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-100">
-            <!-- STEP 1: Info -->
             <div id="step-1" class="p-6 md:p-8 flex flex-col flex-1 overflow-y-auto">
                 <div class="text-center mb-6">
                     <div class="inline-block bg-indigo-50 p-4 rounded-[1.5rem] text-brand mb-2 border border-indigo-100"><i class="ph-fill ph-student text-5xl floating"></i></div>
@@ -315,10 +348,10 @@
                 <button onclick="validateAndNextStep()" class="w-full mt-auto bg-brand hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-[0_8px_20px_rgba(79,70,229,0.3)] flex items-center justify-center gap-2">Tiếp tục <i class="ph-bold ph-arrow-right"></i></button>
             </div>
 
-            <!-- STEP 2: Subjects -->
             <div id="step-2" class="p-4 md:p-6 hidden flex-col flex-1 overflow-y-auto">
                 <div class="text-center mb-4">
                     <h2 class="text-2xl font-black text-slate-800" id="step-2-title">Nhiệm Vụ Hàng Ngày</h2>
+                    <p class="text-xs text-slate-500 font-bold mt-1">Cài đặt môn học, mục tiêu và thời gian chạy (phút).</p>
                 </div>
                 <div class="mb-4" id="preset-container">
                     <div class="grid grid-cols-2 gap-2">
@@ -330,7 +363,7 @@
                 </div>
                 <div class="flex-1">
                     <div id="ob-subject-list" class="space-y-3 mb-4"></div>
-                    <button onclick="addCustomSubject()" class="w-full border-2 border-dashed border-slate-300 text-slate-500 hover:text-brand hover:border-brand hover:bg-indigo-50 font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition-all"><i class="ph-bold ph-plus-circle"></i> Thêm nhiệm vụ tự do</button>
+                    <button onclick="addCustomSubject()" class="w-full border-2 border-dashed border-slate-300 text-slate-500 hover:text-brand hover:border-brand hover:bg-indigo-50 font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition-all"><i class="ph-bold ph-plus-circle"></i> Thêm nhiệm vụ</button>
                 </div>
                 <div class="flex gap-3 mt-4">
                     <button id="btn-back-step1" onclick="nextStep(1)" class="px-5 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl"><i class="ph-bold ph-arrow-left text-lg"></i></button>
@@ -341,7 +374,6 @@
         </div>
     </div>
 
-    <!-- TOP NAV -->
     <div class="fixed top-0 left-0 w-full z-40 bg-white/90 backdrop-blur-lg border-b border-slate-100 px-4 py-3 flex justify-between items-center shadow-sm">
         <div class="flex items-center gap-3">
             <div class="relative w-11 h-11 bg-gradient-to-br from-brand to-secondary rounded-full p-0.5 shadow-md flex items-center justify-center overflow-hidden">
@@ -360,10 +392,8 @@
         </button>
     </div>
 
-    <!-- MAIN APP CONTAINER -->
     <div class="max-w-md mx-auto p-4 pt-24 pb-safe animate-fade-in" id="app-container">
         
-        <!-- ================= TAB 1: DASHBOARD ================= -->
         <div id="tab-home" class="tab-content active">
             
             <div class="flex justify-between items-center mb-5">
@@ -377,7 +407,7 @@
             <div id="countdown-card" class="premium-card bg-white p-5 mb-6 flex justify-between items-center relative overflow-hidden">
                 <div class="absolute -right-6 -top-6 text-brand opacity-5"><i class="ph-fill ph-clock text-9xl"></i></div>
                 <div class="relative z-10">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" id="countdown-title">Thời hạn chốt sổ</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" id="countdown-title">Thời hạn chốt sổ (23:00)</p>
                     <div id="countdown-display" class="font-mono text-3xl font-black tracking-wider text-brand drop-shadow-sm">--:--:--</div>
                 </div>
                 <div class="relative z-10 text-right">
@@ -393,11 +423,9 @@
             </div>
 
             <div class="space-y-4" id="home-grid">
-                <!-- JS Render Môn học -->
             </div>
         </div>
 
-        <!-- ================= TAB 2: POMODORO ================= -->
         <div id="tab-focus" class="tab-content">
             <div class="text-center mb-6">
                 <h1 class="text-2xl font-black text-slate-800 flex items-center justify-center gap-2">Trạm Tập Trung <i class="ph-fill ph-brain text-secondary"></i></h1>
@@ -425,7 +453,6 @@
             </div>
         </div>
 
-        <!-- ================= TAB 3: LỊCH SỬ ================= -->
         <div id="tab-calendar" class="tab-content">
             <h1 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2">Nhật Ký Học Tập <i class="ph-fill ph-calendar-check text-brand"></i></h1>
             
@@ -445,7 +472,6 @@
             </div>
         </div>
 
-        <!-- ================= TAB 4: HỒ SƠ ================= -->
         <div id="tab-profile" class="tab-content">
             
             <div class="relative bg-white rounded-[2rem] p-6 shadow-xl overflow-hidden mb-6 mt-2 border border-slate-100">
@@ -486,7 +512,6 @@
 
     <div class="h-44 w-full block"></div>
 
-    <!-- BOTTOM FLOATING NAV -->
     <div class="fixed bottom-6 left-0 w-full z-50 flex justify-center px-4 pointer-events-none">
         <div class="pointer-events-auto w-full max-w-sm bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.08)] flex justify-between p-1.5 transition-all">
             <button onclick="switchTab('home')" id="nav-home" class="nav-btn active flex-1 flex flex-col items-center justify-center py-2.5 rounded-full text-slate-400 transition-all duration-300 relative"><i class="ph-fill ph-house text-[22px] mb-0.5 z-10"></i><span class="text-[10px] font-bold z-10">Hôm nay</span><div class="nav-bg"></div></button>
@@ -496,7 +521,6 @@
         </div>
     </div>
     
-    <!-- KHU VỰC BẰNG KHEN ẨN (Để in PDF) -->
     <div id="hidden-certificate-wrapper" style="position: fixed; top: 0; left: 0; width: 1123px; height: 794px; z-index: -9999; opacity: 0.01; pointer-events: none; overflow: hidden;">
         <div class="certificate-container" id="certificate" style="margin: 0; padding: 40px; box-sizing: border-box;">
             <div class="inner-border">
@@ -536,7 +560,6 @@
                     <div class="w-1/3 flex justify-start">
                         <div class="seal">
                             <p class="text-[8px] font-bold uppercase tracking-tighter mt-1">Chứng nhận</p>
-                            <!-- Chữ CHÍNH HÃNG đã được chặn xuống dòng -->
                             <p class="text-[16px] font-black mt-0.5 mb-0.5 whitespace-nowrap">CHÍNH HÃNG</p>
                             <p class="text-[8px] font-bold uppercase">Uy tín 100%</p>
                         </div>
@@ -552,7 +575,7 @@
                             <span class="signature-font text-5xl text-blue-800 transform -rotate-6">CDWebs</span>
                         </div>
                         <div class="border-t border-gray-400 mt-1 pt-1">
-                            <p class="font-bold text-gray-800 text-lg">CDWebs</p>
+                            <p class="font-bold text-gray-800 text-lg">CanhDev</p>
                             <p class="text-xs text-gray-600 uppercase tracking-widest mt-0.5">Ban Quản Trị</p>
                         </div>
                     </div>
@@ -562,6 +585,73 @@
     </div>
 
     <script>
+        // --- API KEY CHO GEMINI 2.5 FLASH (AI CHẤM ĐIỂM) ---
+        const apiKey = ""; 
+
+        // --- HÀM GỌI API GEMINI (AI Chấm Điểm) ---
+        async function verifyWithAIGemini(base64Image, subjectName, goal) {
+            const base64Data = base64Image.split(',')[1];
+            
+            const prompt = `Bạn là một trợ lý giáo viên AI. Học sinh vừa nộp bằng chứng hình ảnh cho nhiệm vụ học tập môn "${subjectName}" với mục tiêu là "${goal}".
+            Nhiệm vụ của bạn:
+            1. Đọc và phân tích chữ/nội dung trong hình ảnh này.
+            2. Xác định xem nội dung đó CÓ THỰC SỰ LIÊN QUAN đến môn học và mục tiêu đã đề ra hay không.
+            3. Trả lời dưới định dạng JSON với 2 trường: 
+               - "valid": true (nếu ảnh hợp lệ/đúng môn/đúng mục tiêu) hoặc false (nếu ảnh tải lên sai môn, ảnh phong cảnh, hoặc lừa đảo).
+               - "msg": Một câu ngắn gọn (nhận xét khen ngợi nếu true, hoặc giải thích vì sao từ chối nếu false).
+            Lưu ý: Khắt khe với các ảnh không chứa nội dung chữ viết, biểu đồ, hay màn hình học tập.`;
+
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: prompt },
+                        { inlineData: { mimeType: "image/jpeg", data: base64Data } }
+                    ]
+                }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            valid: { type: "BOOLEAN" },
+                            msg: { type: "STRING" }
+                        }
+                    }
+                }
+            };
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            
+            for (let i = 0; i < 6; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    const result = await response.json();
+                    const textData = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (textData) {
+                        return JSON.parse(textData);
+                    } else {
+                        throw new Error("No text data returned from Gemini");
+                    }
+                } catch (error) {
+                    if (i === 5) {
+                        console.error("AI API Error after retries:", error);
+                        return { valid: true, msg: "Hệ thống AI tạm thời bận, tự động duyệt bài." };
+                    }
+                    await new Promise(res => setTimeout(res, delays[i]));
+                }
+            }
+        }
+
         // --- DATA & GAMIFICATION STATE ---
         let userProfile = { 
             name: '', status: 'highschool', classStr: '', year: '', school: '', subjects: [], 
@@ -572,14 +662,17 @@
         let todayStr = "";
         let isEditMode = false; 
         let lockedDays = []; 
-        let countdownTimer = null;
         let activityChart = null; 
 
+        // Task & Clock Management
+        let activeTaskInfo = null; // { id, endTime, status }
+        let mainClockInterval = null;
+
         const presets = { 
-            'A00': [ { name: 'Toán', goal: 'Giải 1 đề trắc nghiệm' }, { name: 'Vật Lý', goal: 'Làm 20 câu Lý thuyết' }, { name: 'Hóa Học', goal: 'Hoàn thành 1 bài tập lớn' } ], 
-            'A01': [ { name: 'Toán', goal: 'Giải 1 đề trắc nghiệm' }, { name: 'Vật Lý', goal: 'Làm 20 câu Lý thuyết' }, { name: 'Tiếng Anh', goal: 'Học 20 từ vựng và 1 bài Đọc' } ], 
-            'D01': [ { name: 'Toán', goal: 'Giải 1 đề Toán' }, { name: 'Ngữ Văn', goal: 'Viết 1 đoạn văn' }, { name: 'Tiếng Anh', goal: 'Làm 1 bài Đọc hiểu' } ], 
-            'IELTS': [ { name: 'Reading', goal: 'Làm 1 Passage' }, { name: 'Listening', goal: 'Nghe 1 Part & chép chính tả' }, { name: 'Vocab', goal: 'Học 20 từ mới' } ] 
+            'A00': [ { name: 'Toán', goal: 'Giải 1 đề trắc nghiệm', duration: 45 }, { name: 'Vật Lý', goal: 'Làm 20 câu Lý thuyết', duration: 30 }, { name: 'Hóa Học', goal: 'Hoàn thành 1 bài tập lớn', duration: 30 } ], 
+            'A01': [ { name: 'Toán', goal: 'Giải 1 đề trắc nghiệm', duration: 45 }, { name: 'Vật Lý', goal: 'Làm 20 câu Lý thuyết', duration: 30 }, { name: 'Tiếng Anh', goal: 'Học 20 từ vựng và 1 bài Đọc', duration: 30 } ], 
+            'D01': [ { name: 'Toán', goal: 'Giải 1 đề Toán', duration: 45 }, { name: 'Ngữ Văn', goal: 'Viết 1 đoạn văn', duration: 45 }, { name: 'Tiếng Anh', goal: 'Làm 1 bài Đọc hiểu', duration: 30 } ], 
+            'IELTS': [ { name: 'Reading', goal: 'Làm 1 Passage', duration: 20 }, { name: 'Listening', goal: 'Nghe 1 Part & chép chính tả', duration: 30 }, { name: 'Vocab', goal: 'Học 20 từ mới', duration: 15 } ] 
         };
 
         // --- WEB AUDIO API DOPAMINE GENERATOR ---
@@ -638,6 +731,19 @@
                     osc.start(now + i * 0.08);
                     osc.stop(now + i * 0.08 + 0.3);
                 });
+            } catch(e) {}
+        }
+        
+        function playAlarmSound() {
+             try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = ctx.currentTime;
+                for(let i=0; i<3; i++) {
+                    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                    osc.type = 'square'; osc.frequency.setValueAtTime(800, now + i*0.4);
+                    gain.gain.setValueAtTime(0.1, now + i*0.4); gain.gain.exponentialRampToValueAtTime(0.01, now + i*0.4 + 0.3);
+                    osc.connect(gain); gain.connect(ctx.destination); osc.start(now + i*0.4); osc.stop(now + i*0.4 + 0.3);
+                }
             } catch(e) {}
         }
 
@@ -805,6 +911,73 @@
             });
         }
 
+        // --- TICK HỆ THỐNG (Đồng hồ chung & Task Timer) ---
+        function systemTick() {
+            const now = new Date().getTime();
+            
+            // 1. Đồng hồ chốt sổ 23:00 (11h khuya)
+            const targetTime = new Date(); 
+            targetTime.setHours(23, 0, 0, 0);
+            
+            const diffDeadline = targetTime.getTime() - now;
+            const displayObj = document.getElementById('countdown-display');
+            const card = document.getElementById('countdown-card');
+            const title = document.getElementById('countdown-title');
+            const icon = document.getElementById('countdown-icon');
+
+            if (displayObj) {
+                if (diffDeadline <= 0) {
+                    displayObj.innerText = "00:00:00"; 
+                    title.innerText = "Đã chốt sổ hôm nay";
+                    card.className = "premium-card bg-slate-100 p-5 mb-6 flex justify-between items-center relative overflow-hidden opacity-80 border-slate-200";
+                    displayObj.className = "font-mono text-3xl font-black tracking-wider text-slate-400 drop-shadow-none";
+                    icon.className = "ph-fill ph-lock-key text-2xl text-slate-400";
+                    
+                    if (!lockedDays.includes(todayStr)) {
+                        lockedDays.push(todayStr); 
+                        localStorage.setItem('lockedDays_v15', JSON.stringify(lockedDays)); 
+                        renderHome();
+                    }
+                } else {
+                    const h = Math.floor((diffDeadline % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const m = Math.floor((diffDeadline % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((diffDeadline % (1000 * 60)) / 1000);
+                    displayObj.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                    
+                    if (h === 0) {
+                        card.className = "premium-card bg-red-50 p-5 mb-6 flex justify-between items-center relative overflow-hidden border-red-200 animate-pulse";
+                        displayObj.className = "font-mono text-3xl font-black tracking-wider text-red-500 drop-shadow-sm";
+                        icon.className = "ph-fill ph-warning text-2xl text-red-500";
+                        title.innerText = "Cảnh báo sắp hết hạn!";
+                    }
+                }
+            }
+
+            // 2. Cập nhật Task Timer đang chạy
+            if (activeTaskInfo) {
+                const activeId = activeTaskInfo.id;
+                const endTime = activeTaskInfo.endTime;
+                const diffTask = endTime - now;
+                
+                const timeDisplayEl = document.getElementById(`task-timer-${activeId}`);
+                if (timeDisplayEl) {
+                    if (diffTask <= 0) {
+                        // Hết giờ -> Chuyển sang đợi nộp bài
+                        timeDisplayEl.innerText = "00:00";
+                        playAlarmSound();
+                        activeTaskInfo.status = 'waiting_submit';
+                        localStorage.setItem('activeTask_v15', JSON.stringify(activeTaskInfo));
+                        renderHome(); 
+                    } else {
+                        // Đang đếm ngược
+                        const tm = Math.floor(diffTask / 60000);
+                        const ts = Math.floor((diffTask % 60000) / 1000);
+                        timeDisplayEl.innerText = `${tm.toString().padStart(2, '0')}:${ts.toString().padStart(2, '0')}`;
+                    }
+                }
+            }
+        }
+
         // --- KHỞI TẠO APP VÀ PHỤC HỒI DỮ LIỆU ---
         function initApp() {
             const today = new Date();
@@ -812,10 +985,10 @@
             const options = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
             document.getElementById('today-date-display').innerText = today.toLocaleDateString('vi-VN', options);
 
-            const savedLockedDays = localStorage.getItem('lockedDays_v14');
+            const savedLockedDays = localStorage.getItem('lockedDays_v15');
             if (savedLockedDays) lockedDays = JSON.parse(savedLockedDays);
 
-            const savedTempImages = localStorage.getItem('tempImages_v14');
+            const savedTempImages = localStorage.getItem('tempImages_v15');
             if (savedTempImages) tempImages = JSON.parse(savedTempImages);
 
             const savedPomo = localStorage.getItem('pomoState_v14');
@@ -825,13 +998,24 @@
                 pomoTimeLeft = pState.timeLeft;
             }
 
-            const savedProfile = localStorage.getItem('userProfile_v14'); 
+            const savedActiveTask = localStorage.getItem('activeTask_v15');
+            if (savedActiveTask) {
+                activeTaskInfo = JSON.parse(savedActiveTask);
+            }
+
+            const savedProfile = localStorage.getItem('userProfile_v15') || localStorage.getItem('userProfile_v14'); 
             
             if (savedProfile) {
                 document.getElementById('onboarding-overlay').classList.add('hidden');
                 document.getElementById('onboarding-overlay').classList.remove('flex');
                 
                 userProfile = { ...userProfile, ...JSON.parse(savedProfile) };
+                
+                // Đảm bảo các task cũ nếu thiếu duration thì cấp 25p
+                userProfile.subjects.forEach(sub => {
+                    if(!sub.duration) sub.duration = 25;
+                });
+                
                 checkStreakBreak();
                 loadMainApp();
                 
@@ -856,6 +1040,11 @@
                     }
                 });
             }
+
+            // Bật bộ đếm thời gian chung cho toàn app
+            if(mainClockInterval) clearInterval(mainClockInterval);
+            mainClockInterval = setInterval(systemTick, 1000);
+            systemTick();
         }
 
         function toggleSchoolInputs() {
@@ -921,7 +1110,7 @@
                     showError('wrapper-class', 'err-class', '⚠️ Vui lòng nhập tên lớp!');
                     isValid = false;
                 } else if (!classRegex.test(classVal)) { 
-                    showError('wrapper-class', 'err-class', '⚠️ Định dạng lớp không đúng (Lớp cấp 3 phải có dạng kiểu: 12A1, 10B2)');
+                    showError('wrapper-class', 'err-class', '⚠️ Định dạng lớp không đúng (VD: 12A1, 10B2)');
                     isValid = false; 
                 }
 
@@ -940,7 +1129,7 @@
                     showError('wrapper-uniclass', 'err-uniclass', '⚠️ Vui lòng nhập lớp Đại học!');
                     isValid = false;
                 } else if (!uniClassRegex.test(uniClassVal)) {
-                    showError('wrapper-uniclass', 'err-uniclass', '⚠️ Lớp Đại học không hợp lệ (Định dạng từ 4-15 ký tự, VD: D20CQCN01, K65CNTT)');
+                    showError('wrapper-uniclass', 'err-uniclass', '⚠️ Lớp Đại học không hợp lệ (VD: D20CQCN01)');
                     isValid = false;
                 }
 
@@ -960,7 +1149,7 @@
             const oldLevel = userProfile.level;
             userProfile.level = Math.floor(Math.sqrt(userProfile.exp / 100)) + 1;
             
-            localStorage.setItem('userProfile_v14', JSON.stringify(userProfile));
+            localStorage.setItem('userProfile_v15', JSON.stringify(userProfile));
             updateGamificationUI();
 
             if (userProfile.level > oldLevel) {
@@ -979,7 +1168,7 @@
 
                 if (diffDays > 1) {
                     userProfile.streak = 0; 
-                    localStorage.setItem('userProfile_v14', JSON.stringify(userProfile));
+                    localStorage.setItem('userProfile_v15', JSON.stringify(userProfile));
                 }
             }
         }
@@ -989,7 +1178,7 @@
                 userProfile.streak += 1;
                 if(userProfile.streak > userProfile.maxStreak) userProfile.maxStreak = userProfile.streak;
                 userProfile.lastTaskDate = todayStr;
-                localStorage.setItem('userProfile_v14', JSON.stringify(userProfile));
+                localStorage.setItem('userProfile_v15', JSON.stringify(userProfile));
                 updateGamificationUI();
                 
                 showStreakCelebration(userProfile.streak);
@@ -1032,64 +1221,23 @@
         }
 
         function loadMainApp() {
-            const savedData = localStorage.getItem('studyDB_v14');
+            const savedData = localStorage.getItem('studyDB_v15') || localStorage.getItem('studyDB_v14');
             if (savedData) db = JSON.parse(savedData);
             if (!db[todayStr]) db[todayStr] = {};
             
             document.getElementById('home-name').innerText = userProfile.name; 
-            startCountdown();
             renderHome(); 
             updateProfileCard(); 
         }
 
-        function startCountdown() {
-            if (countdownTimer) clearInterval(countdownTimer);
-            const targetTime = new Date(); targetTime.setHours(17, 0, 0, 0);
-
-            countdownTimer = setInterval(() => {
-                const now = new Date(); const diff = targetTime - now;
-                const display = document.getElementById('countdown-display');
-                const card = document.getElementById('countdown-card');
-                const title = document.getElementById('countdown-title');
-                const icon = document.getElementById('countdown-icon');
-
-                if (diff <= 0) {
-                    clearInterval(countdownTimer);
-                    display.innerText = "00:00:00"; title.innerText = "Đã chốt sổ hôm nay";
-                    card.className = "premium-card bg-slate-100 p-5 mb-6 flex justify-between items-center relative overflow-hidden opacity-80 border-slate-200";
-                    display.className = "font-mono text-3xl font-black tracking-wider text-slate-400 drop-shadow-none";
-                    icon.className = "ph-fill ph-lock-key text-2xl text-slate-400";
-                    autoLockToday();
-                } else {
-                    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    const s = Math.floor((diff % (1000 * 60)) / 1000);
-                    display.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                    
-                    if (h === 0) {
-                        card.className = "premium-card bg-red-50 p-5 mb-6 flex justify-between items-center relative overflow-hidden border-red-200 animate-pulse";
-                        display.className = "font-mono text-3xl font-black tracking-wider text-red-500 drop-shadow-sm";
-                        icon.className = "ph-fill ph-warning text-2xl text-red-500";
-                        title.innerText = "Cảnh báo sắp hết hạn!";
-                    }
-                }
-            }, 1000);
-        }
-
-        function autoLockToday() {
-            if (!lockedDays.includes(todayStr)) {
-                lockedDays.push(todayStr); localStorage.setItem('lockedDays_v14', JSON.stringify(lockedDays)); renderHome();
-            }
-        }
-
-        // --- ONBOARDING ---
+        // --- ONBOARDING & SETUP ---
         let tempSubjects = [];
         function nextStep(step) { 
             document.querySelectorAll('#onboarding-overlay > div > div[id^="step-"]').forEach(el => { el.classList.add('hidden'); el.classList.remove('flex'); });
             document.getElementById(`step-${step}`).classList.remove('hidden'); document.getElementById(`step-${step}`).classList.add('flex'); 
         }
         function openProfileEdit() { 
-            if (lockedDays.includes(todayStr)) { alert("Đã chốt sổ, không thể sửa lịch hôm nay!"); return; }
+            if (lockedDays.includes(todayStr) || activeTaskInfo) { alert("Đang có task chạy hoặc đã chốt sổ, không thể sửa!"); return; }
             isEditMode = true; tempSubjects = JSON.parse(JSON.stringify(userProfile.subjects)); renderOnboardingSubjects();
             document.getElementById('btn-back-step1').classList.add('hidden'); document.getElementById('btn-cancel-edit').classList.remove('hidden'); document.getElementById('step-2-title').innerText = "Sửa Môn Học"; document.getElementById('preset-container').classList.add('hidden'); 
             document.getElementById('onboarding-overlay').classList.remove('hidden'); 
@@ -1100,15 +1248,34 @@
             document.getElementById('onboarding-overlay').classList.add('hidden'); 
             document.getElementById('onboarding-overlay').classList.remove('flex'); 
         }
-        function loadPreset(code) { tempSubjects = presets[code].map((s, index) => ({ id: 'sub_' + Date.now() + index, name: s.name, goal: s.goal })); renderOnboardingSubjects(); }
-        function addCustomSubject() { tempSubjects.push({ id: 'sub_' + Date.now(), name: '', goal: '' }); renderOnboardingSubjects(); }
+        function loadPreset(code) { tempSubjects = presets[code].map((s, index) => ({ id: 'sub_' + Date.now() + index, name: s.name, goal: s.goal, duration: s.duration })); renderOnboardingSubjects(); }
+        function addCustomSubject() { tempSubjects.push({ id: 'sub_' + Date.now(), name: '', goal: '', duration: 25 }); renderOnboardingSubjects(); }
         function removeSubject(id) { tempSubjects = tempSubjects.filter(s => s.id !== id); renderOnboardingSubjects(); }
-        function updateSubjectName(id, value) { const sub = tempSubjects.find(s => s.id === id); if(sub) sub.name = value; }
-        function updateSubjectGoal(id, value) { const sub = tempSubjects.find(s => s.id === id); if(sub) sub.goal = value; }
+        
+        function updateSub(id, field, value) { 
+            const sub = tempSubjects.find(s => s.id === id); 
+            if(sub) {
+                if(field === 'duration') sub[field] = parseInt(value) || 25;
+                else sub[field] = value; 
+            }
+        }
 
         function renderOnboardingSubjects() {
             const list = document.getElementById('ob-subject-list'); list.innerHTML = '';
-            tempSubjects.forEach(sub => { list.innerHTML += `<div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 relative shadow-sm"><button onclick="removeSubject('${sub.id}')" class="absolute -top-2 -right-2 bg-white text-red-500 border border-red-100 shadow-sm rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-50 transition-all"><i class="ph-bold ph-x"></i></button><input type="text" value="${sub.name}" oninput="updateSubjectName('${sub.id}', this.value)" placeholder="Tên môn / Kỹ năng..." class="w-full bg-transparent font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2 outline-none focus:border-brand transition-colors"><input type="text" value="${sub.goal}" onchange="updateSubjectGoal('${sub.id}', this.value)" placeholder="Chỉ tiêu (VD: Làm 1 đề)" class="w-full bg-transparent text-sm text-brand font-medium outline-none"></div>`; });
+            tempSubjects.forEach(sub => { 
+                list.innerHTML += `
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 relative shadow-sm">
+                    <button onclick="removeSubject('${sub.id}')" class="absolute -top-2 -right-2 bg-white text-red-500 border border-red-100 shadow-sm rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-50 transition-all"><i class="ph-bold ph-x"></i></button>
+                    <input type="text" value="${sub.name}" oninput="updateSub('${sub.id}', 'name', this.value)" placeholder="Tên môn / Kỹ năng..." class="w-full bg-transparent font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2 outline-none focus:border-brand transition-colors">
+                    <div class="flex gap-2 mt-2">
+                        <input type="text" value="${sub.goal}" onchange="updateSub('${sub.id}', 'goal', this.value)" placeholder="Chỉ tiêu (VD: Làm 1 đề)" class="flex-1 bg-transparent text-sm text-brand font-medium outline-none">
+                        <div class="flex items-center gap-1 bg-white border border-slate-200 px-2 rounded-lg py-1">
+                            <i class="ph-fill ph-clock text-slate-400"></i>
+                            <input type="number" value="${sub.duration || 25}" onchange="updateSub('${sub.id}', 'duration', this.value)" class="w-10 text-center text-sm font-bold bg-transparent outline-none"> p
+                        </div>
+                    </div>
+                </div>`; 
+            });
         }
 
         function finishOnboarding() {
@@ -1141,7 +1308,7 @@
                 userProfile.subjects = tempSubjects; 
             } else { userProfile.subjects = tempSubjects; }
             
-            localStorage.setItem('userProfile_v14', JSON.stringify(userProfile));
+            localStorage.setItem('userProfile_v15', JSON.stringify(userProfile));
             document.getElementById('onboarding-overlay').classList.add('hidden');
             document.getElementById('onboarding-overlay').classList.remove('flex');
             loadMainApp(); updateGamificationUI();
@@ -1247,38 +1414,81 @@
             });
         }
 
-        // --- HOME TAB LOGIC ---
+        // --- GIAO DIỆN CHÍNH HOME & TASKS ---
         function renderHome() {
             const grid = document.getElementById('home-grid'); grid.innerHTML = '';
             const todayData = db[todayStr] || {}; let completedCount = 0; const totalSubs = userProfile.subjects.length;
             const isTodayLocked = lockedDays.includes(todayStr);
+            const isAnyTaskRunningOrPending = activeTaskInfo !== null;
 
             userProfile.subjects.forEach(sub => {
-                const imgData = todayData[sub.id]; const isDone = !!imgData; const hasTempImg = tempImages[sub.id];
+                const isDone = !!todayData[sub.id]; 
+                const isThisActiveTask = activeTaskInfo && activeTaskInfo.id === sub.id;
                 if (isDone) completedCount++;
 
                 const card = document.createElement('div');
-                let cardClass = `premium-card p-4 flex flex-col `;
+                let cardClass = `premium-card p-4 flex flex-col relative transition-all duration-300 `;
+                
+                // Trạng thái Card hiển thị
                 if (isTodayLocked && !isDone) cardClass += ` card-locked`;
                 else if (isDone) cardClass += ` card-done`;
+                else if (isThisActiveTask) cardClass += ` card-running`;
+                else if (isAnyTaskRunningOrPending) cardClass += ` card-locked`;
+                else {
+                    cardClass += ` card-clickable hover:border-brand`;
+                    card.onclick = () => openTaskModal(sub.id);
+                }
                 card.className = cardClass;
 
-                let contentHTML = `<div class="flex justify-between items-start mb-3"><div class="flex-1"><h2 class="font-bold text-slate-800 text-lg">${sub.name}</h2><p class="text-[13px] text-slate-500 font-bold mt-0.5 flex items-center gap-1"><i class="ph-bold ph-target text-brand"></i> ${sub.goal}</p></div>${isDone ? `<div class="bg-green-100 text-green-700 px-2 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm"><i class="ph-fill ph-check-circle text-sm"></i> Đã duyệt</div>` : `<div class="bg-indigo-50 text-brand px-2 py-1.5 rounded-lg text-[10px] font-bold border border-indigo-100 shadow-sm">+50 EXP</div>`}</div>`;
+                let contentHTML = `
+                <div class="flex justify-between items-start mb-3 z-10 relative">
+                    <div class="flex-1">
+                        <h2 class="font-bold text-slate-800 text-lg">${sub.name}</h2>
+                        <p class="text-[13px] text-slate-500 font-bold mt-0.5 flex items-center gap-1"><i class="ph-bold ph-target text-brand"></i> ${sub.goal}</p>
+                    </div>
+                    ${isDone ? `<div class="bg-green-100 text-green-700 px-2 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm"><i class="ph-fill ph-check-circle text-sm"></i> Đã duyệt</div>` 
+                    : `<div class="bg-indigo-50 text-brand px-2 py-1.5 rounded-lg text-[10px] font-bold border border-indigo-100 shadow-sm"><i class="ph-fill ph-clock"></i> ${sub.duration || 25}p</div>`}
+                </div>`;
 
+                // Nội dung bên dưới của Card
                 if (isDone) {
-                    contentHTML += `<div class="relative rounded-xl overflow-hidden h-32 group border border-green-200"><img src="${imgData}" class="w-full h-full object-cover">
-                        ${!isTodayLocked ? `<button onclick="resetSubject('${sub.id}')" class="absolute inset-0 bg-slate-900/60 flex items-center justify-center text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"><i class="ph-bold ph-trash text-2xl"></i></button>` : ''}</div>`;
-                } else if (hasTempImg && !isTodayLocked) {
-                    contentHTML += `<div><div class="relative rounded-xl overflow-hidden h-28 mb-3 shadow-inner"><img src="${hasTempImg}" class="w-full h-full object-cover brightness-75"><button onclick="cancelTemp('${sub.id}')" class="absolute top-2 right-2 bg-white text-red-500 rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-red-50 transition-colors"><i class="ph-bold ph-x text-lg"></i></button></div><button id="btn-submit-${sub.id}" onclick="submitSubject('${sub.id}')" class="w-full bg-brand text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-[0_4px_15px_rgba(79,70,229,0.3)]"><i class="ph-fill ph-check-circle text-amber-300 text-lg"></i> Nộp Bài Báo Cáo</button><div id="error-msg-${sub.id}" class="hidden text-xs text-red-500 mt-2 text-center font-bold bg-red-50 p-2 rounded-lg border border-red-100"></div></div>`;
-                } else if (!isTodayLocked) {
-                    contentHTML += `
-                    <div class="flex h-16">
-                        <input type="file" id="file-${sub.id}" class="hidden" accept="image/*" capture="environment" onchange="handleFile(event, '${sub.id}')">
-                        <label for="file-${sub.id}" class="w-full flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-brand hover:text-brand text-slate-400 transition-all group bg-white">
-                            <i class="ph-bold ph-camera text-2xl mb-0.5 group-hover:scale-110 transition-transform"></i>
-                            <span class="text-[9px] font-bold uppercase tracking-wider">Chụp bài làm</span>
-                        </label>
-                    </div>`;
+                    contentHTML += `<div class="relative rounded-xl overflow-hidden h-32 group border border-green-200 z-10"><img src="${todayData[sub.id]}" class="w-full h-full object-cover">
+                        ${!isTodayLocked ? `<button onclick="resetSubject(event, '${sub.id}')" class="absolute inset-0 bg-slate-900/60 flex items-center justify-center text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"><i class="ph-bold ph-trash text-2xl"></i></button>` : ''}</div>`;
+                } else if (isThisActiveTask) {
+                    const status = activeTaskInfo.status;
+                    if (status === 'running') {
+                        contentHTML += `
+                        <div class="mt-2 bg-white/80 p-4 rounded-2xl flex flex-col items-center justify-center border border-amber-200 relative z-10 shadow-inner">
+                            <div class="timer-ring absolute inset-0"></div>
+                            <span class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-1 z-10">Đang thực hiện</span>
+                            <div id="task-timer-${sub.id}" class="font-mono text-4xl font-black text-slate-800 tracking-tight mb-3 z-10">--:--</div>
+                            <button onclick="finishTaskEarly(event)" class="w-full px-4 py-3 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-xl text-sm font-bold transition-colors border border-amber-200 flex items-center justify-center gap-2 z-10 relative">
+                                <i class="ph-fill ph-check-square-offset text-lg"></i> Nộp bài sớm
+                            </button>
+                        </div>`;
+                    } else if (status === 'waiting_submit') {
+                        const hasTempImg = tempImages[sub.id];
+                        if (hasTempImg) {
+                            contentHTML += `
+                            <div class="z-10 relative mt-2">
+                                <div class="relative rounded-xl overflow-hidden h-28 mb-3 shadow-inner border border-slate-200">
+                                    <img src="${hasTempImg}" class="w-full h-full object-cover brightness-75">
+                                    <button onclick="cancelTemp(event, '${sub.id}')" class="absolute top-2 right-2 bg-white text-red-500 rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-red-50 transition-colors"><i class="ph-bold ph-x text-lg"></i></button>
+                                </div>
+                                <button id="btn-submit-${sub.id}" onclick="submitSubject(event, '${sub.id}')" class="w-full bg-brand hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-[0_4px_15px_rgba(79,70,229,0.3)]"><i class="ph-fill ph-robot text-amber-300 text-xl"></i> AI Chấm Bài</button>
+                                <div id="error-msg-${sub.id}" class="hidden text-xs text-red-500 mt-3 text-center font-bold bg-red-50 p-2 rounded-lg border border-red-100"></div>
+                            </div>`;
+                        } else {
+                            contentHTML += `
+                            <div class="flex h-20 mt-2 z-10 relative animate-pulse">
+                                <input type="file" id="file-${sub.id}" class="hidden" accept="image/*" capture="environment" onchange="handleFile(event, '${sub.id}')">
+                                <label for="file-${sub.id}" onclick="event.stopPropagation()" class="w-full flex flex-col items-center justify-center border-2 border-dashed border-amber-300 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 text-amber-600 transition-all">
+                                    <i class="ph-bold ph-camera text-2xl mb-1 group-hover:scale-110 transition-transform"></i>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider">Chụp bài làm ngay</span>
+                                </label>
+                            </div>`;
+                        }
+                    }
                 }
                 card.innerHTML = contentHTML; grid.appendChild(card);
             });
@@ -1286,58 +1496,140 @@
             document.getElementById('home-progress-text').innerText = `${completedCount}/${totalSubs} hoàn thành`;
         }
 
-        // --- XỬ LÝ ẢNH ---
+        // Logic Modal Bắt Đầu Task
+        function openTaskModal(id) {
+            if (activeTaskInfo) return;
+            const sub = userProfile.subjects.find(s => s.id === id);
+            if(!sub) return;
+
+            document.getElementById('tm-subject').innerText = sub.name;
+            document.getElementById('tm-goal').innerText = sub.goal;
+            document.getElementById('tm-duration').innerText = sub.duration || 25;
+            
+            const btn = document.getElementById('tm-start-btn');
+            btn.onclick = () => startTask(sub.id, sub.duration || 25);
+
+            const modal = document.getElementById('task-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                document.getElementById('task-modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeTaskModal() {
+            const modal = document.getElementById('task-modal');
+            modal.classList.add('opacity-0');
+            document.getElementById('task-modal-content').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function startTask(id, durationMins) {
+            closeTaskModal();
+            const now = new Date().getTime();
+            activeTaskInfo = {
+                id: id,
+                endTime: now + (durationMins * 60000), 
+                status: 'running'
+            };
+            localStorage.setItem('activeTask_v15', JSON.stringify(activeTaskInfo));
+            systemTick();
+            renderHome();
+        }
+
+        function finishTaskEarly(event) {
+            event.stopPropagation();
+            if(!activeTaskInfo) return;
+            activeTaskInfo.status = 'waiting_submit';
+            localStorage.setItem('activeTask_v15', JSON.stringify(activeTaskInfo));
+            renderHome();
+        }
+
+        // --- XỬ LÝ ẢNH & AI ---
         function handleFile(event, id) {
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image(); img.onload = function() {
                     const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 400; let scaleSize = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
+                    const MAX_WIDTH = 600; 
+                    let scaleSize = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
                     canvas.width = img.width * scaleSize; canvas.height = img.height * scaleSize;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    tempImages[id] = canvas.toDataURL('image/jpeg', 0.6); 
-                    localStorage.setItem('tempImages_v14', JSON.stringify(tempImages));
+                    tempImages[id] = canvas.toDataURL('image/jpeg', 0.8); 
+                    localStorage.setItem('tempImages_v15', JSON.stringify(tempImages));
                     renderHome();
                 }; img.src = e.target.result;
             }; reader.readAsDataURL(file);
         }
         
-        function cancelTemp(id) { 
+        function cancelTemp(event, id) { 
+            event.stopPropagation();
             delete tempImages[id]; 
-            localStorage.setItem('tempImages_v14', JSON.stringify(tempImages));
+            localStorage.setItem('tempImages_v15', JSON.stringify(tempImages));
             renderHome(); 
         }
         
-        function submitSubject(id) {
+        async function submitSubject(event, id) {
+            event.stopPropagation();
             if (!tempImages[id]) return; 
-            const btn = document.getElementById(`btn-submit-${id}`); 
-            btn.disabled = true; 
-            btn.innerHTML = `<i class="ph-duotone ph-spinner-gap animate-spin text-lg"></i> Đang nộp bài...`;
             
-            setTimeout(() => {
+            const subject = userProfile.subjects.find(s => s.id === id);
+            const subjectName = subject ? subject.name : "Nhiệm vụ học tập";
+            const goal = subject ? subject.goal : "Hoàn thành";
+
+            const btn = document.getElementById(`btn-submit-${id}`); 
+            const errorEl = document.getElementById(`error-msg-${id}`);
+            const originalBtnText = btn.innerHTML;
+            
+            btn.disabled = true; 
+            btn.innerHTML = `<i class="ph-duotone ph-spinner-gap animate-spin text-lg"></i> AI đang phân tích...`;
+            if(errorEl) errorEl.classList.add('hidden');
+
+            // GỌI HÀM AI GEMINI
+            const aiResult = await verifyWithAIGemini(tempImages[id], subjectName, goal);
+
+            if (aiResult.valid) {
                 db[todayStr][id] = tempImages[id]; 
-                localStorage.setItem('studyDB_v14', JSON.stringify(db)); 
+                localStorage.setItem('studyDB_v15', JSON.stringify(db)); 
                 
                 delete tempImages[id]; 
-                localStorage.setItem('tempImages_v14', JSON.stringify(tempImages));
+                localStorage.setItem('tempImages_v15', JSON.stringify(tempImages));
                 
+                // Mở khóa cho các task khác
+                activeTaskInfo = null;
+                localStorage.removeItem('activeTask_v15');
+
                 addEXP(50); 
                 triggerTaskCompleteStreak(); 
                 renderHome(); 
-            }, 600);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+                if(errorEl) {
+                    errorEl.innerText = `⚠️ Nhận xét của AI: ${aiResult.msg}`;
+                    errorEl.classList.remove('hidden');
+                } else {
+                    alert(`⚠️ Nhận xét của AI: ${aiResult.msg}`);
+                }
+            }
         }
         
-        function resetSubject(id) { 
+        function resetSubject(event, id) { 
+            event.stopPropagation();
             if(confirm("Hủy kết quả môn này?")) { 
                 delete db[todayStr][id]; 
-                localStorage.setItem('studyDB_v14', JSON.stringify(db)); 
+                localStorage.setItem('studyDB_v15', JSON.stringify(db)); 
                 renderHome(); 
             } 
         }
 
-        // --- POMODORO TIMER LOGIC ---
+        // --- POMODORO TIMER LOGIC (TAB FOCUS - Giữ nguyên của bạn) ---
         let pomoInterval = null;
         let pomoTimeLeft = 25 * 60; 
         let pomoMode = 'focus25'; 
